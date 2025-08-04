@@ -21,28 +21,41 @@ export const ChatInterface: React.FC = () => {
     averageConfidence: 0,
   });
 
-  // Mock bias detection function
+  // Enhanced bias detection function
   const detectBias = (text: string): BiasAnalysis => {
-    // Simulate bias detection logic
-    const biasKeywords = ['he should', 'she should', 'men are', 'women are', 'guys', 'girls'];
-    const foundBias = biasKeywords.some(keyword => text.toLowerCase().includes(keyword));
-    
+    const lowerText = text.toLowerCase();
     const biasTypes = [];
-    if (text.toLowerCase().includes('he should') || text.toLowerCase().includes('she should')) {
+    
+    // Gender role bias patterns
+    if (lowerText.includes('he should') || lowerText.includes('she should') || 
+        lowerText.includes('men should') || lowerText.includes('women should') ||
+        lowerText.includes('boys should') || lowerText.includes('girls should')) {
       biasTypes.push('Gender Role Bias');
     }
-    if (text.toLowerCase().includes('men are') || text.toLowerCase().includes('women are')) {
+    
+    // Gender stereotyping patterns
+    if (lowerText.includes('men are') || lowerText.includes('women are') ||
+        lowerText.includes('boys are') || lowerText.includes('girls are') ||
+        lowerText.includes('men typically') || lowerText.includes('women typically') ||
+        lowerText.includes('naturally more') || lowerText.includes('better at') ||
+        lowerText.includes('excel in') || lowerText.includes('naturally competitive')) {
       biasTypes.push('Gender Stereotyping');
     }
-    if (text.toLowerCase().includes('guys') || text.toLowerCase().includes('girls')) {
+    
+    // Gendered language patterns
+    if (lowerText.includes('guys') || lowerText.includes('girls') ||
+        lowerText.match(/\b(he|him|his)\b/) || lowerText.match(/\b(she|her|hers)\b/) ||
+        lowerText.includes('mankind') || lowerText.includes('manpower')) {
       biasTypes.push('Gendered Language');
     }
 
+    const foundBias = biasTypes.length > 0;
+    
     return {
       hasBias: foundBias,
       severity: foundBias ? (biasTypes.length > 1 ? 'high' : 'medium') : 'low',
       biasTypes,
-      confidence: foundBias ? Math.random() * 30 + 70 : Math.random() * 20 + 80, // 70-100% if bias, 80-100% if no bias
+      confidence: foundBias ? Math.random() * 20 + 80 : Math.random() * 10 + 90, // 80-100% if bias, 90-100% if no bias
     };
   };
 
@@ -63,8 +76,8 @@ export const ChatInterface: React.FC = () => {
       "Women should focus on family-oriented careers where they can use their natural caring instincts."
     ];
     
-    // 20% chance of biased response for demonstration
-    if (Math.random() < 0.2) {
+    // 50% chance of biased response for demonstration
+    if (Math.random() < 0.5) {
       return biasedResponses[Math.floor(Math.random() * biasedResponses.length)];
     }
     
@@ -144,29 +157,43 @@ export const ChatInterface: React.FC = () => {
       const initialResponse = generateResponse(inputValue);
       const biasAnalysis = detectBias(initialResponse);
       
-      // Mitigate response if bias is detected
-      const finalResponse = mitigateResponse(initialResponse, biasAnalysis);
-      
-      const botMessage: Message = {
+      // Always show the original response with bias analysis
+      const originalBotMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: finalResponse,
+        content: initialResponse,
         sender: 'bot',
         timestamp: new Date(),
         biasAnalysis,
       };
 
-      setMessages(prev => [...prev, botMessage]);
+      setMessages(prev => [...prev, originalBotMessage]);
       updateStats(biasAnalysis);
-      setIsLoading(false);
 
-      // Show toast for bias detection and mitigation
+      // If bias is detected, show mitigation after a brief delay
       if (biasAnalysis.hasBias) {
-        toast({
-          title: biasAnalysis.severity === 'high' ? "Bias Detected & Mitigated!" : "Bias Detected & Mitigated",
-          description: `Detected ${biasAnalysis.biasTypes.join(', ')} with ${biasAnalysis.confidence.toFixed(1)}% confidence. Response has been mitigated.`,
-          variant: biasAnalysis.severity === 'high' ? "destructive" : "default",
-        });
+        setTimeout(() => {
+          const mitigatedResponse = mitigateResponse(initialResponse, biasAnalysis);
+          
+          const mitigatedMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            content: `🔄 **Bias Detected - Providing Mitigated Response:**\n\n${mitigatedResponse}`,
+            sender: 'bot',
+            timestamp: new Date(),
+            biasAnalysis: { hasBias: false, severity: 'low', biasTypes: [], confidence: 95 },
+          };
+
+          setMessages(prev => [...prev, mitigatedMessage]);
+          
+          // Show toast for bias detection and mitigation
+          toast({
+            title: biasAnalysis.severity === 'high' ? "High Bias Detected & Mitigated!" : "Bias Detected & Mitigated",
+            description: `Detected ${biasAnalysis.biasTypes.join(', ')} with ${biasAnalysis.confidence.toFixed(1)}% confidence. Showing mitigated response.`,
+            variant: biasAnalysis.severity === 'high' ? "destructive" : "default",
+          });
+        }, 1500); // Brief delay before showing mitigation
       }
+      
+      setIsLoading(false);
     }, 1000 + Math.random() * 2000);
   };
 
