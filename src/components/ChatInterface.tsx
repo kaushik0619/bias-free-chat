@@ -46,7 +46,7 @@ export const ChatInterface: React.FC = () => {
     };
   };
 
-  // Mock AI response generation
+  // Mock AI response generation with bias mitigation
   const generateResponse = (userMessage: string): string => {
     const responses = [
       "That's an interesting perspective. In my analysis, both men and women can excel in leadership roles depending on their individual skills and experience.",
@@ -56,7 +56,7 @@ export const ChatInterface: React.FC = () => {
       "That's a thought-provoking question. Evidence suggests that attributing characteristics based on gender alone can overlook individual differences and abilities."
     ];
     
-    // Sometimes return potentially biased responses for demo
+    // Sometimes return potentially biased responses for demo (will be mitigated)
     const biasedResponses = [
       "Well, men are typically better at technical tasks while women excel in nurturing roles.",
       "I think guys are naturally more competitive, which helps in business environments.",
@@ -69,6 +69,38 @@ export const ChatInterface: React.FC = () => {
     }
     
     return responses[Math.floor(Math.random() * responses.length)];
+  };
+
+  // Bias mitigation function
+  const mitigateResponse = (response: string, biasAnalysis: BiasAnalysis): string => {
+    if (!biasAnalysis.hasBias) return response;
+
+    // Mitigation templates based on bias types
+    const mitigationTemplates = {
+      'Gender Role Bias': [
+        "I understand your perspective. It's important to recognize that career choices and abilities are individual traits that aren't determined by gender. People of all genders can excel in any field based on their personal interests, skills, and dedication.",
+        "That's an interesting topic. Research shows that success in any profession depends primarily on individual capabilities, training, and passion rather than gender. Everyone should be encouraged to pursue their interests regardless of traditional expectations."
+      ],
+      'Gender Stereotyping': [
+        "I appreciate your input. However, studies consistently show that individual differences within any group are much larger than differences between groups. Each person has unique strengths and qualities that shouldn't be generalized based on gender.",
+        "Thank you for sharing that perspective. Modern research emphasizes that personal characteristics and abilities vary greatly among individuals, regardless of gender. It's most accurate to evaluate people based on their individual merits and contributions."
+      ],
+      'Gendered Language': [
+        "I understand what you're saying. Using inclusive language helps ensure everyone feels welcome in discussions. People of all genders can contribute valuable insights to any conversation or field.",
+        "That's a fair point. Research shows that inclusive communication leads to better outcomes for everyone involved. Individual perspectives and experiences matter more than gender-based assumptions."
+      ]
+    };
+
+    // Find the most appropriate mitigation based on detected bias types
+    for (const biasType of biasAnalysis.biasTypes) {
+      if (mitigationTemplates[biasType as keyof typeof mitigationTemplates]) {
+        const templates = mitigationTemplates[biasType as keyof typeof mitigationTemplates];
+        return templates[Math.floor(Math.random() * templates.length)];
+      }
+    }
+
+    // Default mitigation if no specific type matches
+    return "I understand your perspective. It's important to consider that individual differences and personal qualities are more significant than group generalizations. Everyone deserves to be evaluated based on their unique merits and contributions.";
   };
 
   const scrollToBottom = () => {
@@ -109,12 +141,15 @@ export const ChatInterface: React.FC = () => {
 
     // Simulate AI processing delay
     setTimeout(() => {
-      const botResponse = generateResponse(inputValue);
-      const biasAnalysis = detectBias(botResponse);
+      const initialResponse = generateResponse(inputValue);
+      const biasAnalysis = detectBias(initialResponse);
+      
+      // Mitigate response if bias is detected
+      const finalResponse = mitigateResponse(initialResponse, biasAnalysis);
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: botResponse,
+        content: finalResponse,
         sender: 'bot',
         timestamp: new Date(),
         biasAnalysis,
@@ -124,12 +159,12 @@ export const ChatInterface: React.FC = () => {
       updateStats(biasAnalysis);
       setIsLoading(false);
 
-      // Show toast for high bias detection
-      if (biasAnalysis.hasBias && biasAnalysis.severity === 'high') {
+      // Show toast for bias detection and mitigation
+      if (biasAnalysis.hasBias) {
         toast({
-          title: "High Bias Detected!",
-          description: `Detected ${biasAnalysis.biasTypes.join(', ')} with ${biasAnalysis.confidence.toFixed(1)}% confidence`,
-          variant: "destructive",
+          title: biasAnalysis.severity === 'high' ? "Bias Detected & Mitigated!" : "Bias Detected & Mitigated",
+          description: `Detected ${biasAnalysis.biasTypes.join(', ')} with ${biasAnalysis.confidence.toFixed(1)}% confidence. Response has been mitigated.`,
+          variant: biasAnalysis.severity === 'high' ? "destructive" : "default",
         });
       }
     }, 1000 + Math.random() * 2000);
