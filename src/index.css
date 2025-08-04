@@ -2,39 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+/* AI Chatbot Design System - Gender Bias Detection
+Modern tech colors with bias alert indicators
 All colors MUST be HSL.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* AI Tech Theme */
+    --background: 220 20% 99%;
+    --foreground: 220 15% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 220 30% 98%;
+    --card-foreground: 220 15% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 220 30% 98%;
+    --popover-foreground: 220 15% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* AI Blue Primary */
+    --primary: 230 60% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 230 80% 70%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Tech Purple Secondary */
+    --secondary: 260 40% 95%;
+    --secondary-foreground: 260 60% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 20% 95%;
+    --muted-foreground: 220 10% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 270 60% 96%;
+    --accent-foreground: 270 80% 25%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Bias Alert Colors */
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --warning: 45 85% 55%;
+    --warning-foreground: 45 85% 15%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 20% 90%;
+    --input: 220 25% 95%;
+    --ring: 230 60% 50%;
+
+    /* AI Gradients */
+    --gradient-ai: linear-gradient(135deg, hsl(230 60% 50%), hsl(270 60% 60%));
+    --gradient-chat: linear-gradient(180deg, hsl(220 30% 98%), hsl(220 20% 96%));
+    --gradient-bias: linear-gradient(135deg, hsl(45 85% 55%), hsl(0 75% 55%));
+
+    /* Shadows */
+    --shadow-ai: 0 10px 40px -10px hsl(230 60% 50% / 0.3);
+    --shadow-chat: 0 4px 20px -4px hsl(220 20% 70% / 0.4);
+    --shadow-bias: 0 4px 15px -4px hsl(45 85% 55% / 0.3);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --radius: 0.5rem;
 
@@ -56,33 +78,50 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Dark AI Theme */
+    --background: 220 25% 8%;
+    --foreground: 220 15% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 25% 10%;
+    --card-foreground: 220 15% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 25% 10%;
+    --popover-foreground: 220 15% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Bright AI Blue for Dark */
+    --primary: 230 70% 60%;
+    --primary-foreground: 220 25% 8%;
+    --primary-glow: 230 90% 80%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    /* Dark Purple Secondary */
+    --secondary: 260 25% 15%;
+    --secondary-foreground: 260 40% 90%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 220 20% 12%;
+    --muted-foreground: 220 10% 60%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 270 30% 15%;
+    --accent-foreground: 270 60% 85%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    /* Bias Alert Colors Dark */
+    --destructive: 0 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --warning: 45 90% 65%;
+    --warning-foreground: 45 90% 10%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 220 20% 18%;
+    --input: 220 25% 12%;
+    --ring: 230 70% 60%;
+
+    /* Dark Gradients */
+    --gradient-ai: linear-gradient(135deg, hsl(230 70% 60%), hsl(270 70% 70%));
+    --gradient-chat: linear-gradient(180deg, hsl(220 25% 10%), hsl(220 20% 8%));
+    --gradient-bias: linear-gradient(135deg, hsl(45 90% 65%), hsl(0 80% 60%));
+
+    /* Dark Shadows */
+    --shadow-ai: 0 10px 40px -10px hsl(230 70% 60% / 0.4);
+    --shadow-chat: 0 4px 20px -4px hsl(220 25% 5% / 0.8);
+    --shadow-bias: 0 4px 15px -4px hsl(45 90% 65% / 0.4);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
