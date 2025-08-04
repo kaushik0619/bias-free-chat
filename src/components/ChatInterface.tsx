@@ -116,6 +116,38 @@ export const ChatInterface: React.FC = () => {
     return "I understand your perspective. It's important to consider that individual differences and personal qualities are more significant than group generalizations. Everyone deserves to be evaluated based on their unique merits and contributions.";
   };
 
+  // Bias reframing function - rewrites the original biased text
+  const reframeResponse = (response: string): string => {
+    let reframed = response;
+
+    // Reframe gender role bias
+    reframed = reframed.replace(/men are typically better at/gi, 'individuals with experience in');
+    reframed = reframed.replace(/women excel in/gi, 'many people excel in');
+    reframed = reframed.replace(/men should/gi, 'people should');
+    reframed = reframed.replace(/women should/gi, 'people should');
+    reframed = reframed.replace(/he should/gi, 'they should');
+    reframed = reframed.replace(/she should/gi, 'they should');
+
+    // Reframe gender stereotyping
+    reframed = reframed.replace(/men are naturally/gi, 'some individuals are naturally');
+    reframed = reframed.replace(/women are naturally/gi, 'some individuals are naturally');
+    reframed = reframed.replace(/guys are naturally/gi, 'some people are naturally');
+    reframed = reframed.replace(/girls are naturally/gi, 'some people are naturally');
+
+    // Reframe gendered language
+    reframed = reframed.replace(/\bguys\b/gi, 'people');
+    reframed = reframed.replace(/\bgirls\b/gi, 'individuals');
+    reframed = reframed.replace(/while women/gi, 'while others');
+    reframed = reframed.replace(/while men/gi, 'while others');
+
+    // Handle specific common phrases
+    reframed = reframed.replace(/technical tasks while women excel in nurturing roles/gi, 'technical tasks, while others excel in nurturing roles - though individual skills and interests vary greatly');
+    reframed = reframed.replace(/more competitive, which helps in business/gi, 'more competitive by nature, which can help in business - though competitiveness varies among all individuals');
+    reframed = reframed.replace(/focus on family-oriented careers where they can use their natural caring instincts/gi, 'consider careers that align with their individual interests and strengths, whether that\'s family-oriented roles or any other field');
+
+    return reframed;
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -169,7 +201,7 @@ export const ChatInterface: React.FC = () => {
       setMessages(prev => [...prev, originalBotMessage]);
       updateStats(biasAnalysis);
 
-      // If bias is detected, show mitigation after a brief delay
+      // If bias is detected, show mitigation and reframing after brief delays
       if (biasAnalysis.hasBias) {
         setTimeout(() => {
           const mitigatedResponse = mitigateResponse(initialResponse, biasAnalysis);
@@ -184,10 +216,25 @@ export const ChatInterface: React.FC = () => {
 
           setMessages(prev => [...prev, mitigatedMessage]);
           
+          // Show reframed version after another brief delay
+          setTimeout(() => {
+            const reframedResponse = reframeResponse(initialResponse);
+            
+            const reframedMessage: Message = {
+              id: (Date.now() + 3).toString(),
+              content: `✏️ **Reframed Original Text (Bias Removed):**\n\n"${reframedResponse}"`,
+              sender: 'bot',
+              timestamp: new Date(),
+              biasAnalysis: { hasBias: false, severity: 'low', biasTypes: [], confidence: 98 },
+            };
+
+            setMessages(prev => [...prev, reframedMessage]);
+          }, 1000); // Additional delay for reframed version
+          
           // Show toast for bias detection and mitigation
           toast({
             title: biasAnalysis.severity === 'high' ? "High Bias Detected & Mitigated!" : "Bias Detected & Mitigated",
-            description: `Detected ${biasAnalysis.biasTypes.join(', ')} with ${biasAnalysis.confidence.toFixed(1)}% confidence. Showing mitigated response.`,
+            description: `Detected ${biasAnalysis.biasTypes.join(', ')} with ${biasAnalysis.confidence.toFixed(1)}% confidence. Showing mitigated and reframed responses.`,
             variant: biasAnalysis.severity === 'high' ? "destructive" : "default",
           });
         }, 1500); // Brief delay before showing mitigation
