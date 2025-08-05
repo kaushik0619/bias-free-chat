@@ -7,6 +7,7 @@ import { Send, MessageSquare, Zap, BrainCircuit } from "lucide-react";
 import { ChatMessage, type Message, type BiasAnalysis } from './ChatMessage';
 import { BiasDetectionPanel } from './BiasDetectionPanel';
 import { useToast } from '@/hooks/use-toast';
+import { pipeline } from '@huggingface/transformers';
 
 export const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -14,6 +15,8 @@ export const ChatInterface: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const [biasClassifier, setBiasClassifier] = useState<any>(null);
+  const [modelLoading, setModelLoading] = useState(true);
 
   const [overallStats, setOverallStats] = useState({
     totalMessages: 0,
@@ -21,8 +24,97 @@ export const ChatInterface: React.FC = () => {
     averageConfidence: 0,
   });
 
-  // Enhanced bias detection function
-  const detectBias = (text: string): BiasAnalysis => {
+  // Initialize transformer model
+  useEffect(() => {
+    const loadModel = async () => {
+      try {
+        console.log('Loading bias detection model...');
+        // Using a toxic/harmful content detection model which can identify bias
+        const classifier = await pipeline(
+          'text-classification',
+          'unitary/toxic-bert',
+          { 
+            device: 'webgpu',
+            dtype: 'fp32'
+          }
+        );
+        setBiasClassifier(classifier);
+        setModelLoading(false);
+        console.log('Bias detection model loaded successfully');
+        
+        toast({
+          title: "Model Loaded",
+          description: "BERT-based bias detection model is ready",
+        });
+      } catch (error) {
+        console.error('Error loading model:', error);
+        // Fallback to CPU if WebGPU fails
+        try {
+          const classifier = await pipeline(
+            'text-classification',
+            'unitary/toxic-bert'
+          );
+          setBiasClassifier(classifier);
+          setModelLoading(false);
+          console.log('Bias detection model loaded on CPU');
+        } catch (fallbackError) {
+          console.error('Failed to load model on CPU:', fallbackError);
+          setModelLoading(false);
+          toast({
+            title: "Model Load Failed",
+            description: "Falling back to rule-based detection",
+            variant: "destructive"
+          });
+        }
+      }
+    };
+
+    loadModel();
+  }, []);
+
+  // Transformer-based bias detection function
+  const detectBias = async (text: string): Promise<BiasAnalysis> => {
+    // Fallback to rule-based detection if model not loaded
+    if (!biasClassifier) {
+      return detectBiasRuleBased(text);
+    }
+
+    try {
+      // Use transformer model for detection
+      const result = await biasClassifier(text);
+      console.log('Transformer bias detection result:', result);
+      
+      // Parse the results from toxic-bert model
+      const toxicScore = result.find((r: any) => r.label === 'TOXIC')?.score || 0;
+      const nonToxicScore = result.find((r: any) => r.label === 'NON_TOXIC')?.score || 0;
+      
+      // Determine bias based on toxicity scores and content analysis
+      const hasBias = toxicScore > 0.3; // Threshold for bias detection
+      const confidence = Math.max(toxicScore, nonToxicScore) * 100;
+      
+      // Analyze bias types using hybrid approach (transformer + rules)
+      const biasTypes = analyzeBiasTypes(text, toxicScore);
+      
+      let severity: 'low' | 'medium' | 'high' = 'low';
+      if (hasBias) {
+        severity = toxicScore > 0.7 ? 'high' : toxicScore > 0.5 ? 'medium' : 'low';
+      }
+
+      return {
+        hasBias,
+        severity,
+        biasTypes,
+        confidence,
+      };
+    } catch (error) {
+      console.error('Error in transformer bias detection:', error);
+      // Fallback to rule-based detection
+      return detectBiasRuleBased(text);
+    }
+  };
+
+  // Rule-based fallback detection
+  const detectBiasRuleBased = (text: string): BiasAnalysis => {
     const lowerText = text.toLowerCase();
     const biasTypes = [];
     
@@ -55,8 +147,43 @@ export const ChatInterface: React.FC = () => {
       hasBias: foundBias,
       severity: foundBias ? (biasTypes.length > 1 ? 'high' : 'medium') : 'low',
       biasTypes,
-      confidence: foundBias ? Math.random() * 20 + 80 : Math.random() * 10 + 90, // 80-100% if bias, 90-100% if no bias
+      confidence: foundBias ? Math.random() * 20 + 80 : Math.random() * 10 + 90,
     };
+  };
+
+  // Analyze bias types using hybrid approach
+  const analyzeBiasTypes = (text: string, toxicScore: number): string[] => {
+    const lowerText = text.toLowerCase();
+    const biasTypes = [];
+    
+    // Enhanced pattern matching with transformer context
+    if (toxicScore > 0.3) {
+      // Gender role bias patterns
+      if (lowerText.includes('should') && (lowerText.includes('men') || lowerText.includes('women') || 
+          lowerText.includes('he ') || lowerText.includes('she '))) {
+        biasTypes.push('Gender Role Bias');
+      }
+      
+      // Gender stereotyping patterns  
+      if ((lowerText.includes('men are') || lowerText.includes('women are') ||
+           lowerText.includes('typically') || lowerText.includes('naturally') ||
+           lowerText.includes('better at') || lowerText.includes('excel in'))) {
+        biasTypes.push('Gender Stereotyping');
+      }
+      
+      // Gendered language patterns
+      if (lowerText.includes('guys') || lowerText.includes('girls') ||
+          lowerText.includes('mankind') || lowerText.includes('manpower')) {
+        biasTypes.push('Gendered Language');
+      }
+
+      // If transformer detected bias but no specific patterns, classify as general bias
+      if (biasTypes.length === 0) {
+        biasTypes.push('Implicit Bias');
+      }
+    }
+    
+    return biasTypes;
   };
 
   // Mock AI response generation with bias mitigation
@@ -185,9 +312,9 @@ export const ChatInterface: React.FC = () => {
     setIsLoading(true);
 
     // Simulate AI processing delay
-    setTimeout(() => {
+    setTimeout(async () => {
       const initialResponse = generateResponse(inputValue);
-      const biasAnalysis = detectBias(initialResponse);
+      const biasAnalysis = await detectBias(initialResponse);
       
       // Always show the original response with bias analysis
       const originalBotMessage: Message = {
@@ -274,7 +401,7 @@ export const ChatInterface: React.FC = () => {
               </div>
               <Badge variant="ai" className="px-3">
                 <Zap className="w-3 h-3 mr-1" />
-                BERT + GPT
+                {modelLoading ? "Loading BERT..." : "BERT Ready"}
               </Badge>
             </div>
           </CardHeader>
