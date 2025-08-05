@@ -29,10 +29,10 @@ export const ChatInterface: React.FC = () => {
     const loadModel = async () => {
       try {
         console.log('Loading bias detection model...');
-        // Using a toxic/harmful content detection model which can identify bias
+        // Using a working text classification model for bias/toxicity detection
         const classifier = await pipeline(
           'text-classification',
-          'unitary/toxic-bert',
+          'Xenova/distilbert-base-uncased-finetuned-sst-2-english',
           { 
             device: 'webgpu',
             dtype: 'fp32'
@@ -52,7 +52,7 @@ export const ChatInterface: React.FC = () => {
         try {
           const classifier = await pipeline(
             'text-classification',
-            'unitary/toxic-bert'
+            'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
           );
           setBiasClassifier(classifier);
           setModelLoading(false);
@@ -84,20 +84,20 @@ export const ChatInterface: React.FC = () => {
       const result = await biasClassifier(text);
       console.log('Transformer bias detection result:', result);
       
-      // Parse the results from toxic-bert model
-      const toxicScore = result.find((r: any) => r.label === 'TOXIC')?.score || 0;
-      const nonToxicScore = result.find((r: any) => r.label === 'NON_TOXIC')?.score || 0;
+      // Parse the results from sentiment model (POSITIVE/NEGATIVE)
+      const negativeScore = result.find((r: any) => r.label === 'NEGATIVE')?.score || 0;
+      const positiveScore = result.find((r: any) => r.label === 'POSITIVE')?.score || 0;
       
-      // Determine bias based on toxicity scores and content analysis
-      const hasBias = toxicScore > 0.3; // Threshold for bias detection
-      const confidence = Math.max(toxicScore, nonToxicScore) * 100;
+      // Use negative sentiment as proxy for potential bias (with content analysis)
+      const hasBias = negativeScore > 0.6 || analyzeBiasTypes(text, negativeScore).length > 0;
+      const confidence = Math.max(negativeScore, positiveScore) * 100;
       
       // Analyze bias types using hybrid approach (transformer + rules)
-      const biasTypes = analyzeBiasTypes(text, toxicScore);
+      const biasTypes = analyzeBiasTypes(text, negativeScore);
       
       let severity: 'low' | 'medium' | 'high' = 'low';
       if (hasBias) {
-        severity = toxicScore > 0.7 ? 'high' : toxicScore > 0.5 ? 'medium' : 'low';
+        severity = negativeScore > 0.8 ? 'high' : negativeScore > 0.7 ? 'medium' : 'low';
       }
 
       return {
